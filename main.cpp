@@ -16,15 +16,21 @@ void show_system_info() {
 	std::cout << "min: " << info.lpMinimumApplicationAddress << std::endl;
 	//std::cout << "Memory avail: " << get_memory_left() << std::endl;
 }
+// --- FOR DESTRUCTOR ---
+// CloseHandle(hFile) - can be used for closing handles
+// std::remove("temp_file"); - usuwam plik tymczasowy
+// UnmapViewOfFile(this->cur_ptr_); -- usuwam view
 
 int main() {
 
 	show_system_info();
 
 	auto my_ptr = mk::allocate_huge(2 * sizeof(__int8));
-			
-	*my_ptr[1] = 'a';
 
-	std::cout << "val: " << (int)*my_ptr[0] << std::endl;
+	my_ptr[1] = 'a';
+
+	std::cout << "val: " << my_ptr[1] << std::endl;
+
+	system("pause");
 
 }

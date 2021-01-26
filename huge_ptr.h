@@ -10,7 +10,7 @@ namespace mk {
 	{
 	public:
 		// dostep do koljenych adresow jak w zwyklym ptr
-		__int8* operator[](size_t);
+		__int8& operator[](size_t);
 		// dereferenece the smart ptr
 		__int8 operator*();
 		// call a function on a ptr
