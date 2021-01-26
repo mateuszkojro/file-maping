@@ -74,7 +74,7 @@ namespace mk {
 		huge_ptr temp;
 		temp.file_handle_ = file_handle;
 		temp.maped_handle_ = maped_handle;
-		temp.cur_ptr_ = (__int8*)ptr;
+		temp.cur_ptr_ = (T*)ptr;
 		temp.allocated_mem_ = alloc_size;
 		//temp.page_size_ = page_size;
 		temp.ofset_ = 0;
@@ -85,7 +85,7 @@ namespace mk {
 
 	// creaates new file view from the desired position of size 
 	// equal to size of one stored element and return reference
-	__int8& huge_ptr::operator[](size_t position)
+	T& huge_ptr::operator[](size_t position)
 	{
 		const size_t graniularity = get_graniualrity();
 		const size_t allocation_block = position / graniularity;
@@ -98,7 +98,7 @@ namespace mk {
 			FILE_MAP_WRITE | FILE_MAP_READ,//	DWORD  dwDesiredAccess,
 			0,	//DWORD  dwFileOffsetHigh,
 			graniularity * allocation_block,	//DWORD  dwFileOffsetLow,
-			(position % graniularity) + sizeof(__int8)	//SIZE_T dwNumberOfBytesToMap
+			(position % graniularity) + sizeof(T)	//SIZE_T dwNumberOfBytesToMap
 		);
 
 		if (!ptr)
@@ -107,7 +107,7 @@ namespace mk {
 			exit(1);
 		}
 
-		this->cur_ptr_ = (__int8*)ptr;
+		this->cur_ptr_ = (T*)ptr;
 
 		return this->cur_ptr_[allocation_position];
 	}

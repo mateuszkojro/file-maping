@@ -4,17 +4,23 @@
 #include <windows.h>
 #include <iostream>
 
+
+// --- zaimplementowac jako alocator --
+// https://en.cppreference.com/w/cpp/memory/allocator
+
+typedef double T;
+
 namespace mk {
 
 	class huge_ptr
 	{
 	public:
 		// dostep do koljenych adresow jak w zwyklym ptr
-		__int8& operator[](size_t);
+		T& operator[](size_t);
 		// dereferenece the smart ptr
-		__int8 operator*();
+		T operator*();
 		// call a function on a ptr
-		__int8* operator->();
+		T* operator->();
 
 		//reszta operatorow - casta na boola prownywanie itd.
 		// tak jak np w unique_ptr
@@ -28,7 +34,7 @@ namespace mk {
 		// current ofset 
 		size_t ofset_;
 		// curent file view ptr
-		__int8* cur_ptr_;
+		T* cur_ptr_;
 		HANDLE file_handle_;
 		HANDLE maped_handle_;
 	};
