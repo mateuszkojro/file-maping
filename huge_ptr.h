@@ -18,7 +18,6 @@ namespace mk {
 
 		//reszta operatorow - casta na boola prownywanie itd.
 		// tak jak np w unique_ptr
-		__int8* file_addr(size_t);
 	
 		friend huge_ptr allocate_huge(size_t);
 	private:

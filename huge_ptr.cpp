@@ -10,20 +10,6 @@ namespace mk {
 
 	huge_ptr allocate_huge(size_t alloc_size)
 	{
-		//prepare page size 
-		size_t page_size;
-		size_t mem_left = get_memory_left();
-		if (mem_left < 512)
-		{
-			page_size = mem_left - 1;
-		}
-		else {
-			page_size = 512;
-		}
-
-		if (page_size > alloc_size) {
-			page_size = alloc_size;
-		}
 
 		HANDLE file_created =
 			CreateFileA("temp_file", //  LPCSTR                lpFileName,
@@ -45,35 +31,31 @@ namespace mk {
 		HANDLE file_maped = CreateFileMappingA(
 			file_created, //HANDLE                hFile,
 			NULL, //LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
-			PAGE_READWRITE, //DWORD                 flProtect,
+			PAGE_READWRITE,  //DWORD                 flProtect,
 			0, //DWORD                 dwMaximumSizeHigh,
 			alloc_size, //DWORD                 dwMaximumSizeLow,
-			"file_mapping" //LPCSTR                lpName
+			NULL //LPCSTR                lpName
 		);
 
-		//std::cout << GetLastError() << std::endl;
 		if (!file_maped)
 		{
 			printf("file maped handle empty\n");
-			std::cout << GetLastError() << std::endl;
 			exit(1);
 		}
 
 		LPVOID ptr = MapViewOfFile(
 			file_maped,	//HANDLE hFileMappingObject,
-			FILE_MAP_WRITE | FILE_MAP_READ,//	DWORD  dwDesiredAccess,
+			FILE_MAP_ALL_ACCESS, //FILE_MAP_WRITE | FILE_MAP_READ,//	DWORD  dwDesiredAccess,
 			0,	//DWORD  dwFileOffsetHigh,
 			0,	//DWORD  dwFileOffsetLow,
-			page_size	//SIZE_T dwNumberOfBytesToMap
+			1	//SIZE_T dwNumberOfBytesToMap
 		);
 
-		//std::cout << GetLastError() << std::endl;
-		//if (!ptr)
-		//{
-		//	printf("file view ptr empty\n");
-		//	std::cout << GetLastError() << std::endl;
-		//	exit(1);
-		//}
+		if (!ptr)
+		{
+			printf("file view ptr empty\n");
+			exit(1);
+		}
 
 
 		huge_ptr temp;
@@ -93,18 +75,28 @@ namespace mk {
 		size_t allocation_block = position / graniularity;
 		size_t allocation_position = position % graniularity;
 
+		//HANDLE file_maped = CreateFileMappingA(
+		//	file_handle_, //HANDLE                hFile,
+		//	NULL, //LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
+		//	PAGE_READWRITE, //DWORD                 flProtect,
+		//	0, //DWORD                 dwMaximumSizeHigh,
+		//	65536, //DWORD                 dwMaximumSizeLow,
+		//	"file_mapping" //LPCSTR                lpName
+		//);
+		//
+		
 		UnmapViewOfFile(this->cur_ptr_);
 
 		LPVOID ptr = MapViewOfFile(
-			this->maped_handle_,	//HANDLE hFileMappingObject,
+			maped_handle_,	//HANDLE hFileMappingObject,
 			FILE_MAP_WRITE | FILE_MAP_READ,//	DWORD  dwDesiredAccess,
 			0,	//DWORD  dwFileOffsetHigh,
 			graniularity * allocation_block,	//DWORD  dwFileOffsetLow,
-			sizeof(__int8)	//SIZE_T dwNumberOfBytesToMap
+			(position % graniularity) + sizeof(__int8)	//SIZE_T dwNumberOfBytesToMap
 		);
 
 
-		std::cout << GetLastError() << std::endl;
+		//std::cout << GetLastError() << std::endl;
 		if (!ptr)
 		{
 			printf("file view ptr empty\n");
@@ -114,7 +106,6 @@ namespace mk {
 
 		this->cur_ptr_ = (__int8*)ptr;
 
-		((__int8*)ptr)[allocation_position] = 'A';
 
 		return (((__int8*)ptr) + (allocation_position));
 	}
