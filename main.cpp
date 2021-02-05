@@ -24,20 +24,39 @@ void show_system_info() {
 // std::remove("temp_file"); - usuwam plik tymczasowy
 // UnmapViewOfFile(this->cur_ptr_); -- usuwam view
 
+using T = int;
+
 int main() {
 
 	show_system_info();
 
-	auto my_ptr = mk::allocate_huge(2 * sizeof(T));
+	auto my_ptr = mk::allocate_huge<T>(20 * sizeof(T));
 
 	my_ptr[0] = 1.02;//"ala ma kota";
 	my_ptr[1] = 0.0002;//"Kot ma aale";
 
+	my_ptr[19] = 234;
+
 	//my_ptr[0] = "ala ma kota";
 	//my_ptr[1] = "Kot ma aale";
 
+
+	std::cout << "moved ptr: " <<  *(my_ptr + 19) << std::endl;
+
 	std::cout << "val: " << my_ptr[0] << std::endl;
 	std::cout << "val: " << my_ptr[1] << std::endl;
+
+	std::vector<int, mk::alocator<int>> a;
+	a.push_back(1);
+
+	for (int i = 0; i < 10000; i++) {
+		a.push_back(i);
+	}
+
+
+	for (auto i : a) {
+		std::cout << i << std::endl;
+	}
 
 	system("pause");
 
