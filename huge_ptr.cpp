@@ -21,8 +21,7 @@ namespace mk {
 
 	// allocaate huge amounts of memory through file maping and creatin views into file 
 	// on disk
-	template<typename T>
-	huge_ptr<T> allocate_huge(size_t alloc_size)
+	huge_ptr allocate_huge(size_t alloc_size)
 	{
 
 		HANDLE file_handle =
@@ -72,7 +71,7 @@ namespace mk {
 		}
 
 
-		huge_ptr<T> temp;
+		huge_ptr temp;
 		temp.file_handle_ = file_handle;
 		temp.maped_handle_ = maped_handle;
 		temp.cur_ptr_ = (T*)ptr;
@@ -86,8 +85,7 @@ namespace mk {
 
 	// creaates new file view from the desired position of size 
 	// equal to size of one stored element and return reference
-	template<typename T>
-	T& huge_ptr<T>::operator[](size_t position)
+	T& huge_ptr::operator[](size_t position)
 	{
 		const size_t graniularity = get_graniualrity();
 		const size_t allocation_block = position / graniularity;
