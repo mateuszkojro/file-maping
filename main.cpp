@@ -34,11 +34,13 @@ int main() {
 
 	show_system_info();
 
-	auto my_ptr = mk::allocate_huge(3 * sizeof(T));
+	using T = char;
 
-	my_ptr[0] = 1;//"ala ma kota";
-	my_ptr[1] = 2;//"Kot ma aale";
-	my_ptr[3] = 3;//"Kot ma aale";
+	auto my_ptr = mk::huge_ptr<T>::allocate_huge(3 * sizeof(T));
+
+	my_ptr[0] = 48;//"ala ma kota";
+	my_ptr[1] = 49;//"Kot ma aale";
+	my_ptr[3] = 50;//"Kot ma aale";
 
 	std::cout << "ptr++\t" << my_ptr[0]++ << std::endl;
 	std::cout << "++ptr\t" << ++my_ptr[0] << std::endl;

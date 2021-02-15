@@ -1,4 +1,7 @@
 #include "huge_ptr.h"
+
+#ifdef DEBIL
+
 namespace mk {
 
 	// how much physicaal memory is left on the system
@@ -115,7 +118,7 @@ namespace mk {
 
 	// creaates new file view from the desired position of size 
 	// equal to size of one stored element and return reference
-	T& huge_ptr::operator[](size_t position)
+	T& huge_ptr<T>::operator[](size_t position)
 	{
 		const size_t calculated_position = position + ofset_;
 		const size_t graniularity = get_graniualrity();
@@ -172,3 +175,4 @@ namespace mk {
 
 }
 
+#endif
