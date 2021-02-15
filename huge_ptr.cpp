@@ -83,22 +83,53 @@ namespace mk {
 
 	}
 
+	huge_ptr::huge_ptr() {
+		cur_ptr_ = nullptr;
+		ofset_ = 0;
+		assert(0);
+	}
+
+	huge_ptr::huge_ptr(const huge_ptr& other) {
+		cur_ptr_ = other.cur_ptr_;
+		ofset_ = other.ofset_;
+		file_handle_ = other.file_handle_;
+		maped_handle_ = other.maped_handle_;
+	}
+
+	const huge_ptr& huge_ptr::operator=(const huge_ptr& other) {
+		if (this == &other) return *this;
+		cur_ptr_ = other.cur_ptr_;
+		ofset_ = other.ofset_;
+		file_handle_ = other.file_handle_;
+		maped_handle_ = other.maped_handle_;
+		return *this;
+	}
+
+	huge_ptr::huge_ptr(const huge_ptr& other ,s_size_t  ofset)
+	{
+		cur_ptr_ = other.cur_ptr_;
+		ofset_ = other.ofset_ + ofset;
+		file_handle_ = other.file_handle_;
+		maped_handle_ = other.maped_handle_;
+	}
+
 	// creaates new file view from the desired position of size 
 	// equal to size of one stored element and return reference
 	T& huge_ptr::operator[](size_t position)
 	{
+		const size_t calculated_position = position + ofset_;
 		const size_t graniularity = get_graniualrity();
-		const size_t allocation_block = position / graniularity;
-		const size_t allocation_position = position % graniularity;
+		const size_t allocation_block = calculated_position / graniularity;
+		const size_t allocation_position = calculated_position % graniularity;
 
-		UnmapViewOfFile(this->cur_ptr_);
+		//UnmapViewOfFile(this->cur_ptr_);
 
 		LPVOID ptr = MapViewOfFile(
 			this->maped_handle_,	//HANDLE hFileMappingObject,
 			FILE_MAP_WRITE | FILE_MAP_READ,//	DWORD  dwDesiredAccess,
 			0,	//DWORD  dwFileOffsetHigh,
 			graniularity * allocation_block,	//DWORD  dwFileOffsetLow,
-			(position % graniularity) + sizeof(T)	//SIZE_T dwNumberOfBytesToMap
+			(calculated_position % graniularity) + sizeof(T)	//SIZE_T dwNumberOfBytesToMap
 		);
 
 		if (!ptr)
@@ -107,9 +138,37 @@ namespace mk {
 			exit(1);
 		}
 
-		this->cur_ptr_ = (T*)ptr;
+		cur_ptr_ = (T*)ptr;
 
-		return this->cur_ptr_[allocation_position];
+		return this->cur_ptr_[calculated_position];
 	}
+
+	T& huge_ptr::operator* () {
+		return operator[](0);
+	}
+
+	huge_ptr huge_ptr::operator++()
+	{
+		return huge_ptr(*this, ofset_ + 1);
+	}
+
+	huge_ptr huge_ptr::operator++(int)
+	{
+		huge_ptr temp = *this;
+		operator++();
+		return temp;
+	}
+	huge_ptr huge_ptr::operator--()
+	{
+		return huge_ptr(*this, ofset_ - 1);
+	}
+
+	huge_ptr huge_ptr::operator--(int)
+	{
+		huge_ptr temp = *this;
+		operator--();
+		return temp;
+	}
+
 }
 

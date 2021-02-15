@@ -24,21 +24,31 @@ void show_system_info() {
 // std::remove("temp_file"); - usuwam plik tymczasowy
 // UnmapViewOfFile(this->cur_ptr_); -- usuwam view
 
+
+// --- TODO ---
+// - wywalic nie potrzebne pola klasy
+// - dereferencja ptr
+// - ->() TF
+
 int main() {
 
 	show_system_info();
 
-	auto my_ptr = mk::allocate_huge(2 * sizeof(T));
+	auto my_ptr = mk::allocate_huge(3 * sizeof(T));
 
-	my_ptr[0] = 1.02;//"ala ma kota";
-	my_ptr[1] = 0.0002;//"Kot ma aale";
+	my_ptr[0] = 1;//"ala ma kota";
+	my_ptr[1] = 2;//"Kot ma aale";
+	my_ptr[3] = 3;//"Kot ma aale";
 
-	//my_ptr[0] = "ala ma kota";
-	//my_ptr[1] = "Kot ma aale";
+	std::cout << "ptr++\t" << my_ptr[0]++ << std::endl;
+	std::cout << "++ptr\t" << ++my_ptr[0] << std::endl;
 
-	std::cout << "val: " << my_ptr[0] << std::endl;
-	std::cout << "val: " << my_ptr[1] << std::endl;
+	std::cout << "ptr--\t" << my_ptr[0]-- << std::endl;
+	std::cout << "--ptr\t" << --my_ptr[0] << std::endl;
+	
+	std::cout << "*ptr\t" << *my_ptr << std::endl;
 
-	system("pause");
+
+	//system("pause");
 
 }
