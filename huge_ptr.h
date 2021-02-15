@@ -19,6 +19,8 @@ namespace mk {
 	{
 	public:
 
+		//using difference_type = std::ptrdiff_t;
+
 		huge_ptr();
 		huge_ptr(const huge_ptr&);
 		huge_ptr(const huge_ptr&, s_size_t ofset);
@@ -30,12 +32,19 @@ namespace mk {
 		// call a function on a ptr
 		T* operator->();
 
+		huge_ptr operator+(std::size_t ofset);
+		huge_ptr operator-(std::size_t ofset);
+		std::ptrdiff_t operator-(huge_ptr other);
+		std::ptrdiff_t operator+(huge_ptr other);
+
+
 		const huge_ptr& operator=(const huge_ptr& other);
 
 		huge_ptr operator++();
 		huge_ptr operator++(int);
 		huge_ptr operator--();
 		huge_ptr operator--(int);
+		operator const bool () const;
 
 		//reszta operatorow - casta na boola prownywanie itd.
 		// tak jak np w unique_ptr
@@ -90,6 +99,12 @@ namespace mk {
 		SYSTEM_INFO info;
 		GetSystemInfo(&info);
 		return  info.dwAllocationGranularity;
+	}
+
+	template<class T>
+	inline huge_ptr<T>::operator const bool() const
+	{
+		return maped_handle_;
 	}
 
 	// allocaate huge amounts of memory through file maping and creatin views into file 
@@ -225,6 +240,35 @@ namespace mk {
 	}
 
 	template<class T>
+	inline huge_ptr<T> huge_ptr<T>::operator+(std::size_t ofset)
+	{
+		static_assert(0);
+
+		return huge_ptr<T>(*this, ofset_ + ofset);
+	}
+	template<class T>
+	inline huge_ptr<T> huge_ptr<T>::operator-(std::size_t ofset)
+	{
+		static_assert(0);
+		return huge_ptr<T>(*this, ofset_ - ofset);
+	}
+
+	template<class T>
+	inline std::ptrdiff_t huge_ptr<T>::operator+(huge_ptr<T> other)
+	{
+		static_assert(0);
+
+		return  ofset_ + other.ofset_ ;
+	}
+	template<class T>
+	inline std::ptrdiff_t huge_ptr<T>::operator-(huge_ptr<T> other)
+	{
+		static_assert(0);
+
+		return  ofset_ - other.ofset_;
+	}
+
+	template<class T>
 	huge_ptr<T>  huge_ptr<T>::operator++()
 	{
 		return  huge_ptr<T>(*this, ofset_ + 1);
@@ -250,6 +294,19 @@ namespace mk {
 		huge_ptr<T> temp = *this;
 		operator--();
 		return temp;
+	}
+
+	template<class T>
+	inline huge_ptr<T> operator+(size_t ofset, huge_ptr<T> ptr)
+	{
+		static_assert(0);
+		return huge_ptr<T>(*ptr, ptr.ofset_ + ofset);
+	}
+	template<class T>
+	inline huge_ptr<T> operator-(size_t ofset, huge_ptr<T> ptr)
+	{		
+		static_assert(0);
+		return huge_ptr<T>(*ptr, ptr.ofset_ - ofset);
 	}
 
 }
