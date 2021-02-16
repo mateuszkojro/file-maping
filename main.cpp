@@ -10,6 +10,7 @@
 
 #include <unordered_map>
 
+#define _CONTAINER_DEBUG_LEVEL 0;
 
 void show_system_info() {
 	SYSTEM_INFO info;
@@ -52,11 +53,19 @@ int main() {
 	my_ptr[1] = 49;//"Kot ma aale";
 	my_ptr[3] = 50;//"Kot ma aale";
 
-	std::cout << "ptr++\t" << my_ptr[0]++ << std::endl;
+	std::cout << "ptr++\t" << my_ptr[0] << std::endl;
+	assert(my_ptr[0] == 48);
+	my_ptr[0]++;
 	std::cout << "++ptr\t" << ++my_ptr[0] << std::endl;
+	assert(my_ptr[0] == 50);
 
-	std::cout << "ptr--\t" << my_ptr[0]-- << std::endl;
+	std::cout << "ptr--\t" << my_ptr[0] << std::endl;
+	assert(my_ptr[0] == 50);
+	my_ptr[0]--;
+
+	
 	std::cout << "--ptr\t" << --my_ptr[0] << std::endl;
+	assert(my_ptr[0] == 48);
 
 	std::cout << "*ptr\t" << *my_ptr << std::endl;
 
@@ -82,7 +91,7 @@ int main() {
 		<< a << std::endl
 		<< b << std::endl
 		<< a - b << std::endl;
-
+	system("pause");
 
 	std::vector<int, mk::Allocator<int>> all;// = {1,2,3};
 
@@ -100,7 +109,7 @@ int main() {
 	//std::cout <<   << std::endl;
 
 
-	//data.reserve(100);
+	all.reserve(100);
 	//double d = 1;
 
 	for (int i = 0; i < 10; i++) {
@@ -108,17 +117,9 @@ int main() {
 	}
 
 
-
-	for (int i = 0; i < 10; i++) {
-		std::cout << 
-			all[i]
-			<< std::endl;
+	for (int i = 0; i < 3; i++) {
+		std::cout << "I: " << all[i] << std::endl;
 	}
-
-
-
-
-
 
 	//system("pause");
 

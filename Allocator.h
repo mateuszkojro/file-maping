@@ -33,6 +33,7 @@ namespace mk {
 
         static huge_ptr<Tp> allocate(size_t n)
         {
+            assert(n);
             n *= sizeof(Tp);
             std::cout << "allocating " << n << " bytes\n";
             return huge_ptr<Tp>::allocate_huge(n);
@@ -49,6 +50,8 @@ namespace mk {
             std::cout << "deallocating \n";
             //::operator delete(p);
         }
+
+
 
     };
     template <class T, class U>
