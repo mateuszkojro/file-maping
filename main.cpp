@@ -30,15 +30,33 @@ void show_system_info() {
 
 
 // --- TODO ---
-// - wywalic nie potrzebne pola klasy
-// - dereferencja ptr
-// - ->() TF
+// - wywalic nie potrzebne pola klasy [ done ] 
+// - dereferencja ptr 
+// - ->() TF 
+
+class test_class {
+public:
+	char x;
+	char y;
+	test_class() :x('o'), y('k') {};
+	test_class(const test_class& other) : x(other.x), y(other.y) {};
+	int hash() {
+
+		return x * 256 + y * 256;
+	}
+
+
+};
 
 
 struct Cos {
 	int x;
 	int y;
 	int z;
+	int hash() {
+		return x * 3 + y * 2 + z;
+
+	}
 };
 
 int main() {
@@ -63,7 +81,7 @@ int main() {
 	assert(my_ptr[0] == 50);
 	my_ptr[0]--;
 
-	
+
 	std::cout << "--ptr\t" << --my_ptr[0] << std::endl;
 	assert(my_ptr[0] == 48);
 
@@ -92,6 +110,15 @@ int main() {
 		<< b << std::endl
 		<< a - b << std::endl;
 	system("pause");
+
+	auto mew_ptr = mk::huge_ptr<test_class>::allocate_huge(3 * sizeof(test_class));
+
+	new_ptr[0] ;
+	
+	
+	std::count<<new_ptr[0]->hash();
+
+
 
 	std::vector<int, mk::Allocator<int>> all;// = {1,2,3};
 

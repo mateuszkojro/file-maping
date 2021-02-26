@@ -5,8 +5,8 @@
 #include <iostream>
 #include <assert.h>
 
-#define LOG do {std::clog << std::endl << "LOG ("  << __FILE__ << ":" << __LINE__   << "): "<< __FUNCTION__ <<  std::endl ; /*__debugbreak();*/ }while(0)
-
+//#define LOG do {std::clog << std::endl << "LOG ("  << __FILE__ << ":" << __LINE__   << "): "<< __FUNCTION__ <<  std::endl ; /*__debugbreak();*/ }while(0)
+#define LOG {}
 // --- zaimplementowac jako alocator --
 // https://en.cppreference.com/w/cpp/memory/allocator
 
@@ -32,6 +32,7 @@ namespace mk {
 		T& operator*();
 		// call a function on a ptr
 		T* operator->();
+	
 
 		//const std::ptrdiff_t operator-(const huge_ptr& other) const;
 		//const std::ptrdiff_t operator+(const huge_ptr& other) const;
@@ -288,6 +289,19 @@ namespace mk {
 	T& huge_ptr<T>::operator* () {
 		return operator[](0);
 	}
+
+	template<class T>
+	inline T* huge_ptr<T>::operator->() // todo test 
+	{
+		if (
+			maped_handle_ != NULL
+			&&                       // if pointer is valid 
+			ofset_!= NULL )		return operator[][0];
+		else return T * (NULL);
+
+	}
+
+	
 
 	template<class T>
 	huge_ptr<T>  huge_ptr<T>::operator++()
