@@ -1,16 +1,16 @@
 #pragma once
 #ifndef HUGE_PTR
 #define HUGE_PTR
-#define _X86_
+
 
 #include <fileapi.h>
 #include <windows.h>
 #include <iostream>
 #include <cassert>
 #include <cstdio>
-#include "allocator_exceptions.h"
+#include <exception>
 
-// --- zaimplementowac jako alocator --
+// --- zaimplementowac jako allocator --
 // https://en.cppreference.com/w/cpp/memory/allocator
 
 typedef long long int s_size_t;
@@ -33,12 +33,12 @@ namespace mk {
 
         huge_ptr(const huge_ptr &);
 
-        huge_ptr(const huge_ptr &, s_size_t ofset);
+        huge_ptr(const huge_ptr &, s_size_t offset);
 
         // dostep do koljenych adresow jak w zwyklym ptr
         T &operator[](size_t);
 
-        // dereferenece the smart ptr
+        // de-reference the smart ptr
         T &operator*();
 
         // call a function on a ptr
@@ -54,47 +54,42 @@ namespace mk {
 
         }
 
-        //const std::ptrdiff_t operator-(const huge_ptr& other) const;
-        //const std::ptrdiff_t operator+(const huge_ptr& other) const;
+
 
         const huge_ptr &operator=(const huge_ptr &other);
 
         huge_ptr operator++();
 
-        huge_ptr operator++(int);
+        const huge_ptr operator++(int);
 
         huge_ptr operator--();
 
-        huge_ptr operator--(int);
+        const huge_ptr operator--(int);
 
-        operator const bool() const;
-
-        //reszta operatorow - casta na boola prownywanie itd.
-        // tak jak np w unique_ptr
+        operator bool() const;
 
         static huge_ptr allocate_huge(size_t);
 
         static huge_ptr pointer_to(T &_Val) {
 
-            throw "well thats shit";
-
             return allocate_huge(sizeof(_Val));
         }
 
+        // free the memory
         void free() {
 
             UnmapViewOfFile(cur_ptr_);
             UnmapViewOfFile(this->cur_ptr_);
-            std::remove(generate_file_name());
+            std::remove(generate_file_name()); // usuwam plik
 
         }
 
         bool operator==(const huge_ptr<T> ptr) const {
 
             return
-                    maped_handle_ == ptr.maped_handle_
+                    mapped_handle_ == ptr.mapped_handle_
                     &&
-                    ofset_ == ptr.ofset_;
+                    offset_ == ptr.offset_;
         }
 
         bool operator!=(const huge_ptr<T> ptr) const {
@@ -102,82 +97,57 @@ namespace mk {
             return !operator==(ptr);
         }
 
-        friend const huge_ptr<T> operator+(huge_ptr<T> ptr, size_t ofset) {
+        friend huge_ptr<T> operator+(huge_ptr<T> ptr, size_t offset) {
 
-            return mk::huge_ptr<T>(ptr, ptr.ofset_ + ofset);
+            return mk::huge_ptr<T>(ptr, ptr.offset_ + offset);
         }
 
-        friend const huge_ptr<T> operator-(huge_ptr<T> ptr, size_t ofset) {
+        friend huge_ptr<T> operator-(huge_ptr<T> ptr, size_t offset) {
 
-            return mk::huge_ptr<T>(ptr, ptr.ofset_ - ofset);
+            return mk::huge_ptr<T>(ptr, ptr.offset_ - offset);
         }
 
-        friend const huge_ptr<T> operator+(huge_ptr<T> ptr, int ofset) {
+        friend huge_ptr<T> operator+(huge_ptr<T> ptr, int offset) {
 
-            return mk::huge_ptr<T>(ptr, ptr.ofset_ + ofset);
+            return mk::huge_ptr<T>(ptr, ptr.offset_ + offset);
         }
 
-        friend const huge_ptr<T> operator-(huge_ptr<T> ptr, int ofset) {
+        friend huge_ptr<T> operator-(huge_ptr<T> ptr, int offset) {
 
-            return mk::huge_ptr<T>(ptr, ptr.ofset_ - ofset);
+            return mk::huge_ptr<T>(ptr, ptr.offset_ - offset);
         }
 
-        friend const std::ptrdiff_t operator+(mk::huge_ptr<T> ptr1, mk::huge_ptr<T> ptr2) {
+        friend std::ptrdiff_t operator+(mk::huge_ptr<T> ptr1, mk::huge_ptr<T> ptr2) {
 
-            return (ptr1.ofset_ + ptr2.ofset_);
+            return (ptr1.offset_ + ptr2.offset_);
         }
 
-        friend const std::ptrdiff_t operator-(mk::huge_ptr<T> ptr1, mk::huge_ptr<T> ptr2) {
+        friend std::ptrdiff_t operator-(mk::huge_ptr<T> ptr1, mk::huge_ptr<T> ptr2) {
 
-            return (ptr1.ofset_ - ptr2.ofset_);
-        }
-
-
-        char *generate_file_name() {
-
-            char *string = new char[9];
-
-            unsigned background = 10000000 + local_file_id_;
-
-
-            string[0] = 'p';
-            string[1] = 'f';
-
-            for (int i = 2; i < 8; i++) {
-                string[9 - i] = (char) ((background % 10) + 48);
-                background /= 10;
-
-            }
-            string[8] = '\0';
-
-            return string;
+            return (ptr1.offset_ - ptr2.offset_);
         }
 
 
-        unsigned local_file_id_;
+        char *generate_file_name(); // creates name of the file from current local_file_id_
 
+    protected:
+        unsigned local_file_id_; // nr that will be visible in the name of file
 
         // how far are we from the begining of the file
-        size_t ofset_;
+        size_t offset_;
 
-
-        // curent file view ptr
+        // current file view ptr
         T *cur_ptr_;
 
-        HANDLE maped_handle_;
-
+        HANDLE mapped_handle_;
 
     };
-
 
 }
 
 // -------------------------------------
 // implementations
 // --------------------------------------
-
-
-#include "huge_ptr.h"
 
 namespace mk {
 
@@ -192,18 +162,18 @@ namespace mk {
 
     // we need to get the allocation granularity
     // na sczescie wystarczy pobraac @SYSTEM_INFO
-    static size_t get_graniualrity() {
+    static size_t get_granularity() {
         SYSTEM_INFO info;
         GetSystemInfo(&info);
         return info.dwAllocationGranularity;
     }
 
     template<class T>
-    inline huge_ptr<T>::operator const bool() const {
-        return maped_handle_;
+    inline huge_ptr<T>::operator bool() const {
+        return mapped_handle_;
     }
 
-    // allocaate huge amounts of memory through file maping and creatin views into file
+    // allocate huge amounts of memory through file mapping and creating views into file
     // on disk
     /// @returns: big pointer
 
@@ -214,52 +184,58 @@ namespace mk {
 
         HANDLE file_handle =
                 CreateFileA(
-                        temp.generate_file_name(),            // file name
-                        GENERIC_READ | GENERIC_WRITE,        // define desired acces r ights
-                        FILE_SHARE_WRITE | FILE_SHARE_READ,    // can handle be shared NULL if not
-                        NULL,                    //  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
-                        CREATE_NEW,                //  DWORD       dwCreationDisposition,
-                        FILE_ATTRIBUTE_NORMAL, //|
-                        //FILE_FLAG_RANDOM_ACCESS,//FILE_FLAG_WRITE_THROUGH,			//  DWORD	dwFlagsAndAttributes,
-                        NULL                    //  HANDLE      hTemplateFile
+                        temp.generate_file_name(),                      // file name
+                        GENERIC_READ | GENERIC_WRITE,                   // define desired access rights
+                        FILE_SHARE_WRITE | FILE_SHARE_READ,             // can handle be shared NULL if not
+                        NULL,                                           //  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+                        CREATE_NEW,                                     //  DWORD       dwCreationDisposition,
+                        FILE_ATTRIBUTE_NORMAL |
+                        FILE_FLAG_WRITE_THROUGH,//FILE_FLAG_RANDOM_ACCESS,//FILE_FLAG_WRITE_THROUGH,			//  DWORD	dwFlagsAndAttributes,
+                        NULL                                            //  HANDLE      hTemplateFile
                 );
 
         if (!file_handle) {
-            std::cout << GetLastError() << std::endl;
-            throw "empty_handle";
+            throw std::bad_alloc();
         }
 
-        HANDLE maped_handle = CreateFileMappingA(
-                file_handle,            // file handle from @CreateFileA
-                NULL,                //LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
-                PAGE_READWRITE,            //DWORD       flProtect,
-                0,                //DWORD       dwMaximumSizeHigh,
-                alloc_size,            // how much of memory to map
-                NULL                // name for this handle if neded to share between processes
+        HANDLE mapped_handle = CreateFileMappingA(
+                file_handle,                            // file handle from @CreateFileA
+                nullptr,              //LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
+                PAGE_READWRITE,                         //DWORD       flProtect,
+                0,                     //DWORD       dwMaximumSizeHigh,
+                alloc_size,                             // how much of memory to map
+                nullptr                          // name for this handle if neded to share between processes
         );
 
         CloseHandle(file_handle);
 
-        if (!maped_handle) {
-            std::cout << GetLastError() << std::endl;
-            throw "empty_handle";
+        if (!mapped_handle) {
+
+            // this may be thrown due to Insufficient system resources exist to complete the requested service.
+            //int that case GetLastError() = 1450
+            // try:
+
+
+            std::cout<<GetLastError();
+            throw std::bad_alloc();
+
         }
 
         LPVOID ptr = MapViewOfFile(
-                maped_handle,    //HANDLE hFileMappingObject,
-                FILE_MAP_ALL_ACCESS, //FILE_MAP_WRITE | FILE_MAP_READ,//	DWORD  dwDesiredAccess,
-                0,    //DWORD  dwFileOffsetHigh,
-                0,    //DWORD  dwFileOffsetLow,
-                1    //SIZE_T dwNumberOfBytesToMap
+                mapped_handle,                        //HANDLE hFileMappingObject,
+                FILE_MAP_ALL_ACCESS,    //FILE_MAP_WRITE | FILE_MAP_READ,   //	DWORD  dwDesiredAccess,
+                0,                      //DWORD  dwFileOffsetHigh,
+                0,                      //DWORD  dwFileOffsetLow,
+                1                 //SIZE_T dwNumberOfBytesToMap
         );
 
         if (!ptr) {
-            throw "empty_view_ptr";
+            throw std::bad_alloc();
         }
 
-        temp.maped_handle_ = maped_handle;
+        temp.mapped_handle_ = mapped_handle;
         temp.cur_ptr_ = (T *) ptr;
-        temp.ofset_ = 0;
+        temp.offset_ = 0;
 
         return temp;
     }
@@ -269,7 +245,7 @@ namespace mk {
     huge_ptr<T>::huge_ptr() {
         local_file_id_ = get_id();
         cur_ptr_ = nullptr;
-        ofset_ = 0;
+        offset_ = 0;
     }
 
     template<class T>
@@ -277,9 +253,9 @@ namespace mk {
         local_file_id_ = other.local_file_id_;
 
         cur_ptr_ = other.cur_ptr_;
-        ofset_ = other.ofset_;
+        offset_ = other.offset_;
 
-        maped_handle_ = other.maped_handle_;
+        mapped_handle_ = other.mapped_handle_;
     }
 
     template<class T>
@@ -289,22 +265,22 @@ namespace mk {
         local_file_id_ = other.local_file_id_;
 
         cur_ptr_ = other.cur_ptr_;
-        ofset_ = other.ofset_;
+        offset_ = other.offset_;
 
-        maped_handle_ = other.maped_handle_;
+        mapped_handle_ = other.mapped_handle_;
         return *this;
 
     }
 
     template<class T>
-    huge_ptr<T>::huge_ptr(const huge_ptr<T> &other, s_size_t ofset) {
+    huge_ptr<T>::huge_ptr(const huge_ptr<T> &other, s_size_t offset) {
 
         local_file_id_ = other.local_file_id_;
 
         cur_ptr_ = other.cur_ptr_;
-        ofset_ = other.ofset_ + ofset;
+        offset_ = other.offset_ + offset;
 
-        maped_handle_ = other.maped_handle_;
+        mapped_handle_ = other.mapped_handle_;
     }
 
     // creates new file view from the desired position of size
@@ -312,31 +288,30 @@ namespace mk {
     template<class T>
     T &huge_ptr<T>::operator[](size_t position) {
 
-        const size_t graniularity = get_graniualrity();
-        size_t calculated_position = position + ofset_;
+        const size_t granularity = get_granularity();
+        size_t calculated_position = position + offset_;
 
-        const size_t allocation_block = calculated_position / graniularity;
-
-
-        calculated_position = calculated_position % graniularity;
+        const size_t allocation_block = calculated_position / granularity;
 
 
-        if (!this->maped_handle_) {
-            throw "empty_handle";
+        calculated_position = calculated_position % granularity;
+
+
+        if (!this->mapped_handle_) {
+            throw std::bad_alloc();
         }
         UnmapViewOfFile(this->cur_ptr_);
 
         LPVOID ptr = MapViewOfFile(
-                this->maped_handle_,                    //HANDLE hFileMappingObject,
-                FILE_MAP_WRITE | FILE_MAP_READ,                //DWORD  dwDesiredAccess,
-                0,                            //DWORD  dwFileOffsetHigh,
-                graniularity * allocation_block,            //DWORD  dwFileOffsetLow,
-                calculated_position + sizeof(T)         //SIZE_T dwNumberOfBytesToMap
+                this->mapped_handle_,                    //HANDLE hFileMappingObject,
+                FILE_MAP_WRITE | FILE_MAP_READ,          //DWORD  dwDesiredaccesss,
+                0,                                       //DWORD  dwFileOffsetHigh,
+                granularity * allocation_block,          //DWORD  dwFileOffsetLow,
+                calculated_position + sizeof(T)          //SIZE_T dwNumberOfBytesToMap
         );
 
         if (!ptr) {
-            std::cout << "err: " << GetLastError() << std::endl;
-            throw "empty_view_ptr";
+            throw std::bad_alloc();
 
         }
 
@@ -353,25 +328,25 @@ namespace mk {
     template<class T>
     inline T *huge_ptr<T>::operator->() {
 
-        const size_t graniularity = get_graniualrity();
-        size_t calculated_position = ofset_;
+        const size_t granularity = get_granularity();
+        size_t calculated_position = offset_;
 
-        const size_t allocation_block = calculated_position / graniularity;
-        calculated_position = calculated_position % graniularity;
+        const size_t allocation_block = calculated_position / granularity;
+        calculated_position = calculated_position % granularity;
 
 
         UnmapViewOfFile(this->cur_ptr_);
 
         LPVOID ptr = MapViewOfFile(
-                this->maped_handle_,                    //HANDLE hFileMappingObject,
-                FILE_MAP_WRITE | FILE_MAP_READ,                //DWORD  dwDesiredAccess,
-                0,                            //DWORD  dwFileOffsetHigh,
-                graniularity * allocation_block,            //DWORD  dwFileOffsetLow,
-                calculated_position + sizeof(T)         //SIZE_T dwNumberOfBytesToMap
+                this->mapped_handle_,                    //HANDLE hFileMappingObject,
+                FILE_MAP_WRITE | FILE_MAP_READ,          //DWORD  dwDesiredaccesss,
+                0,                                       //DWORD  dwFileOffsetHigh,
+                granularity * allocation_block,          //DWORD  dwFileOffsetLow,
+                calculated_position + sizeof(T)          //SIZE_T dwNumberOfBytesToMap
         );
 
         if (!ptr) {
-            throw "empty_view_ptr";
+            throw std::bad_alloc();
         }
 
         cur_ptr_ = (T *) ptr;
@@ -383,11 +358,11 @@ namespace mk {
 
     template<class T>
     huge_ptr<T> huge_ptr<T>::operator++() {
-        return huge_ptr<T>(*this, ofset_ + 1);
+        return huge_ptr<T>(*this, offset_ + 1);
     }
 
     template<class T>
-    huge_ptr<T> huge_ptr<T>::operator++(int) {
+    const huge_ptr<T> huge_ptr<T>::operator++(int) {
         huge_ptr<T> temp = *this;
         operator++();
         return temp;
@@ -395,14 +370,34 @@ namespace mk {
 
     template<class T>
     huge_ptr<T> huge_ptr<T>::operator--() {
-        return huge_ptr<T>(*this, ofset_ - 1);
+        return huge_ptr<T>(*this, offset_ - 1);
     }
 
     template<class T>
-    huge_ptr<T> huge_ptr<T>::operator--(int) {
+    const huge_ptr<T> huge_ptr<T>::operator--(int) {
         huge_ptr<T> temp = *this;
         operator--();
         return temp;
+    }
+
+    template<class T>
+    char *huge_ptr<T>::generate_file_name() {
+
+        char *string = new char[9];
+
+        unsigned background = 10000000 + local_file_id_;
+
+
+        string[0] = 'p';
+        string[1] = 'f';
+
+        for (int i = 2; i < 8; i++) {
+            string[9 - i] = (char) ((background % 10) + 48);
+            background /= 10;
+        }
+        string[8] = '\0';
+
+        return string;
     }
 
 
