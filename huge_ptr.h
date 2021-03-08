@@ -300,6 +300,8 @@ namespace mk {
         if (!this->mapped_handle_) {
             throw std::bad_alloc();
         }
+
+        // we need to free previouslu mapped memory before allocating new
         UnmapViewOfFile(this->cur_ptr_);
 
         LPVOID ptr = MapViewOfFile(
@@ -310,28 +312,35 @@ namespace mk {
                 calculated_position + sizeof(T)          //SIZE_T dwNumberOfBytesToMap
         );
 
+        // MapViewOfFile can return nullptr np. gdy nie ma wystarczajacej ilosci zasobow zaby zaaolokowac pamiec
+        // wiec wzorem ::new() w takim wypdaku wyrzucamy exception
         if (!ptr) {
             throw std::bad_alloc();
-
         }
 
         cur_ptr_ = (T *) ptr;
 
+        // we can divide here becouse in Allocatr::allocate() we multiplied by the sizeof(T) to get the number of bytes
         return this->cur_ptr_[calculated_position / sizeof(T)];
     }
 
     template<class T>
     T &huge_ptr<T>::operator*() {
+        // to avoid code dupliaction dereferencing is just taking the first element
         return operator[](0);
     }
 
     template<class T>
     inline T *huge_ptr<T>::operator->() {
 
+        // get the graniularity of the memory we can access
         const size_t granularity = get_granularity();
         size_t calculated_position = offset_;
 
+        // wich allocation bloc should we use - this segmentation allows
+        // us to map big amount of memory
         const size_t allocation_block = calculated_position / granularity;
+        // calculate position inside of the temp file
         calculated_position = calculated_position % granularity;
 
 
@@ -380,13 +389,13 @@ namespace mk {
         return temp;
     }
 
+    // we need to generate a unique file name for each allocation
     template<class T>
     char *huge_ptr<T>::generate_file_name() {
 
         char *string = new char[9];
 
         unsigned background = 10000000 + local_file_id_;
-
 
         string[0] = 'p';
         string[1] = 'f';
