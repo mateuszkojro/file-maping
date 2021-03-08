@@ -309,6 +309,17 @@ namespace mk {
         // we need to free previouslu mapped memory before allocating new
         UnmapViewOfFile(this->cur_ptr_);
 
+
+        /* For the basic solution we are always allocating enough memory from begining of the closest graaniularity
+         * to the elelment we are instrested in plus one size of element
+         * its not going to be verry performant but its the simplest soultion
+         * ideas to make it faster:
+         * - if we are looking at the same adress in the file one after another we dont need to create new view
+         * - we could create a mapping with some space around an address we are trying to access since verry often
+         *      these would be used either way
+         *
+         */
+
         LPVOID ptr = MapViewOfFile(
                 this->mapped_handle_,                    //HANDLE hFileMappingObject,
                 FILE_MAP_WRITE | FILE_MAP_READ,          //DWORD  dwDesiredaccesss,
@@ -323,6 +334,7 @@ namespace mk {
             throw std::bad_alloc();
         }
 
+        // we need to save our ptr to free it later
         cur_ptr_ = (T *) ptr;
 
         // we can divide here becouse in Allocatr::allocate() we multiplied by the sizeof(T) to get the number of bytes
