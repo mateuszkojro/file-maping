@@ -178,7 +178,7 @@ namespace mk {
     huge_ptr<T> huge_ptr<T>::allocate_huge(size_t alloc_size) {
         huge_ptr<T> temp;
 
-
+        // create memory mapped file
         HANDLE file_handle =
                 CreateFileA(
                         temp.generate_file_name(),                      // file name
@@ -191,6 +191,7 @@ namespace mk {
                         NULL                                            //  HANDLE      hTemplateFile
                 );
 
+        // if file creation didnt succed we cannot allocate - throw
         if (!file_handle) {
             throw std::bad_alloc();
         }
@@ -204,19 +205,22 @@ namespace mk {
                 nullptr                          // name for this handle if neded to share between processes
         );
 
+        // we created a mapped memory region we can close File handle and just operate on our mapped handle
         CloseHandle(file_handle);
 
+
+        // if FileMapping did not succed we cannot allocate - throw
         if (!mapped_handle) {
 
             // this may be thrown due to Insufficient system resources exist to complete the requested service.
-            //int that case GetLastError() = 1450
+            // int that case GetLastError() = 1450
             // try:
-
-            std::cout << GetLastError();
+            // std::cout << GetLastError();
             throw std::bad_alloc();
 
         }
 
+        // we are maping a memory for the first elememt
         LPVOID ptr = MapViewOfFile(
                 mapped_handle,                       //HANDLE hFileMappingObject,
                 FILE_MAP_ALL_ACCESS,                 //FILE_MAP_WRITE | FILE_MAP_READ,   //	DWORD  dwDesiredAccess,
@@ -225,6 +229,7 @@ namespace mk {
                 1                                    //SIZE_T dwNumberOfBytesToMap
         );
 
+        // if memory couldnt be maped - throw
         if (!ptr) {
             throw std::bad_alloc();
         }
@@ -236,13 +241,13 @@ namespace mk {
         // we need how far we are inside the file
         temp.offset_ = 0;
 
+        // return newly created "smart" ptr
         return temp;
     }
 
 
     template<class T>
     huge_ptr<T>::huge_ptr() {
-        //
         local_file_id_ = get_id();
         cur_ptr_ = nullptr;
         offset_ = 0;
