@@ -17,7 +17,6 @@ typedef long long int s_size_t;
 
 static size_t get_id() {
     static size_t id = 0;
-
     id++;
     return id;
 }
@@ -55,7 +54,6 @@ namespace mk {
         }
 
 
-
         const huge_ptr &operator=(const huge_ptr &other);
 
         huge_ptr operator++();
@@ -66,18 +64,14 @@ namespace mk {
 
         const huge_ptr operator--(int);
 
+        // casting used when checking if ptr is not null
         operator bool() const;
 
+        // function that allocates a memory
         static huge_ptr allocate_huge(size_t);
 
-        static huge_ptr pointer_to(T &_Val) {
-
-            return allocate_huge(sizeof(_Val));
-        }
-
-        // free the memory
+        // free the memory - called by Allocator::dealocate()
         void free() {
-
             UnmapViewOfFile(cur_ptr_);
             UnmapViewOfFile(this->cur_ptr_);
             std::remove(generate_file_name()); // usuwam plik
@@ -87,8 +81,10 @@ namespace mk {
         bool operator==(const huge_ptr<T> ptr) const {
 
             return
+                    // do they point to the sane file
                     mapped_handle_ == ptr.mapped_handle_
                     &&
+                    // are they in the same place in the file
                     offset_ == ptr.offset_;
         }
 
@@ -139,6 +135,7 @@ namespace mk {
         // current file view ptr
         T *cur_ptr_;
 
+        // handle to mapped memory region
         HANDLE mapped_handle_;
 
     };
@@ -152,7 +149,7 @@ namespace mk {
 namespace mk {
 
 
-    // how much physicaal memory is left on the system
+    // how much physical memory is left on the system
     static size_t get_memory_left() {
         MEMORYSTATUSEX status;
         status.dwLength = sizeof(status);
@@ -186,11 +183,11 @@ namespace mk {
                 CreateFileA(
                         temp.generate_file_name(),                      // file name
                         GENERIC_READ | GENERIC_WRITE,                   // define desired access rights
-                        FILE_SHARE_WRITE | FILE_SHARE_READ,             // can handle be shared NULL if not
+                        FILE_SHARE_WRITE | FILE_SHARE_READ,             // can handle be shared - NULL if not
                         NULL,                                           //  LPSECURITY_ATTRIBUTES lpSecurityAttributes,
                         CREATE_NEW,                                     //  DWORD       dwCreationDisposition,
                         FILE_ATTRIBUTE_NORMAL |
-                        FILE_FLAG_WRITE_THROUGH,//FILE_FLAG_RANDOM_ACCESS,//FILE_FLAG_WRITE_THROUGH,			//  DWORD	dwFlagsAndAttributes,
+                        FILE_FLAG_RANDOM_ACCESS,                        //FILE_FLAG_WRITE_THROUGH, //  DWORD	dwFlagsAndAttributes,
                         NULL                                            //  HANDLE      hTemplateFile
                 );
 
@@ -199,11 +196,11 @@ namespace mk {
         }
 
         HANDLE mapped_handle = CreateFileMappingA(
-                file_handle,                            // file handle from @CreateFileA
-                nullptr,              //LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
-                PAGE_READWRITE,                         //DWORD       flProtect,
-                0,                     //DWORD       dwMaximumSizeHigh,
-                alloc_size,                             // how much of memory to map
+                file_handle                      // file handle from @CreateFileA
+                nullptr,                         //LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
+                PAGE_READWRITE,                  //DWORD       flProtect,
+                0,                               //DWORD       dwMaximumSizeHigh,
+                alloc_size,                      // how much of memory to map
                 nullptr                          // name for this handle if neded to share between processes
         );
 
@@ -215,26 +212,28 @@ namespace mk {
             //int that case GetLastError() = 1450
             // try:
 
-
-            std::cout<<GetLastError();
+            std::cout << GetLastError();
             throw std::bad_alloc();
 
         }
 
         LPVOID ptr = MapViewOfFile(
-                mapped_handle,                        //HANDLE hFileMappingObject,
-                FILE_MAP_ALL_ACCESS,    //FILE_MAP_WRITE | FILE_MAP_READ,   //	DWORD  dwDesiredAccess,
-                0,                      //DWORD  dwFileOffsetHigh,
-                0,                      //DWORD  dwFileOffsetLow,
-                1                 //SIZE_T dwNumberOfBytesToMap
+                mapped_handle,                       //HANDLE hFileMappingObject,
+                FILE_MAP_ALL_ACCESS,                 //FILE_MAP_WRITE | FILE_MAP_READ,   //	DWORD  dwDesiredAccess,
+                0,                                   //DWORD  dwFileOffsetHigh,
+                0,                                   //DWORD  dwFileOffsetLow,
+                1                                    //SIZE_T dwNumberOfBytesToMap
         );
 
         if (!ptr) {
             throw std::bad_alloc();
         }
 
+        // we need to store a handle to maped file to use when accesing data in it
         temp.mapped_handle_ = mapped_handle;
+        // we need to store the ptr to the maped memory so we can free it later
         temp.cur_ptr_ = (T *) ptr;
+        // we need how far we are inside the file
         temp.offset_ = 0;
 
         return temp;
@@ -243,6 +242,7 @@ namespace mk {
 
     template<class T>
     huge_ptr<T>::huge_ptr() {
+        //
         local_file_id_ = get_id();
         cur_ptr_ = nullptr;
         offset_ = 0;
