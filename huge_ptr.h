@@ -360,9 +360,10 @@ namespace mk {
         // calculate position inside of the temp file
         calculated_position = calculated_position % granularity;
 
-
+        // unmap file view we were using before to avoid memory leaks
         UnmapViewOfFile(this->cur_ptr_);
 
+        // map new view of the file
         LPVOID ptr = MapViewOfFile(
                 this->mapped_handle_,                    //HANDLE hFileMappingObject,
                 FILE_MAP_WRITE | FILE_MAP_READ,          //DWORD  dwDesiredaccesss,
