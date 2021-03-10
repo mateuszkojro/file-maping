@@ -13,6 +13,13 @@
 // --- zaimplementowac jako allocator --
 // https://en.cppreference.com/w/cpp/memory/alloca  tor
 
+size_t size_t_overflow_protection_multiplication(size_t a, size_t b) {
+
+    if (a > _UI64_MAX / b) throw std::overflow_error("overflow! :(");
+    else return a * b;
+
+}
+
 typedef long long int s_size_t;
 
 static size_t get_id() {
@@ -22,7 +29,7 @@ static size_t get_id() {
 }
 
 
-namespace mk {
+namespace my {
 
     template<class T>
     class huge_ptr {
@@ -38,15 +45,12 @@ namespace mk {
         T &operator[](size_t);
 
         // de-reference the smart ptr
-        T &operator*();
+        T &operator*(); // todo const & operator --; ++
+
 
         // call a function on a ptr
         T *operator->();
 
-        size_t& get_offset(){
-            return offset_;
-
-        }
 
         ~huge_ptr() {
 
@@ -61,13 +65,13 @@ namespace mk {
 
         const huge_ptr &operator=(const huge_ptr &other);
 
-        huge_ptr operator++();
+        huge_ptr operator++(); // todo const & operator
 
-        const huge_ptr operator++(int);
+        huge_ptr operator++(int);
 
         huge_ptr operator--();
 
-        const huge_ptr operator--(int);
+        huge_ptr operator--(int);
 
         // casting used when checking if ptr is not null
         operator bool() const;
@@ -87,10 +91,10 @@ namespace mk {
 
             return
                 // do they point to the sane file
-                    mapped_handle_ == ptr.mapped_handle_
-                    &&
-                    // are they in the same place in the file
-                    offset_ == ptr.offset_;
+                    local_file_id_ == ptr.local_file_id_
+                                     &&
+                                     // are they in the same place in the file
+                                     offset_ == ptr.offset_;
         }
 
         bool operator==(const T *ptr) const {
@@ -106,30 +110,30 @@ namespace mk {
 
         friend huge_ptr<T> operator+(huge_ptr<T> ptr, size_t offset) {
 
-            return mk::huge_ptr<T>(ptr, ptr.offset_ + offset);
+            return my::huge_ptr<T>(ptr, ptr.offset_ + offset);
         }
 
         friend huge_ptr<T> operator-(huge_ptr<T> ptr, size_t offset) {
 
-            return mk::huge_ptr<T>(ptr, ptr.offset_ - offset);
+            return my::huge_ptr<T>(ptr, ptr.offset_ - offset);
         }
 
         friend huge_ptr<T> operator+(huge_ptr<T> ptr, int offset) {
 
-            return mk::huge_ptr<T>(ptr, ptr.offset_ + offset);
+            return my::huge_ptr<T>(ptr, ptr.offset_ + offset);
         }
 
         friend huge_ptr<T> operator-(huge_ptr<T> ptr, int offset) {
 
-            return mk::huge_ptr<T>(ptr, ptr.offset_ - offset);
+            return my::huge_ptr<T>(ptr, ptr.offset_ - offset);
         }
 
-        friend std::ptrdiff_t operator+(mk::huge_ptr<T> ptr1, mk::huge_ptr<T> ptr2) {
+        friend std::ptrdiff_t operator+(my::huge_ptr<T> ptr1, my::huge_ptr<T> ptr2) {
 
             return (ptr1.offset_ + ptr2.offset_);
         }
 
-        friend std::ptrdiff_t operator-(mk::huge_ptr<T> ptr1, mk::huge_ptr<T> ptr2) {
+        friend std::ptrdiff_t operator-(my::huge_ptr<T> ptr1, my::huge_ptr<T> ptr2) {
 
             return (ptr1.offset_ - ptr2.offset_);
         }
@@ -157,7 +161,7 @@ namespace mk {
 // implementations
 // --------------------------------------
 
-namespace mk {
+namespace my {
 
 
     // how much physical memory is left on the system
@@ -189,10 +193,8 @@ namespace mk {
     huge_ptr<T> huge_ptr<T>::allocate_huge(size_t alloc_size) {
         huge_ptr<T> temp;
 
-        if ((alloc_size * sizeof(T))/sizeof(T) != alloc_size) {
-            throw std::bad_alloc();
-        }
-        alloc_size *= sizeof(T);
+
+        alloc_size = size_t_overflow_protection_multiplication(alloc_size, sizeof(T));
 
         // create memory mapped file
         HANDLE file_handle =
@@ -231,7 +233,7 @@ namespace mk {
             // this may be thrown due to Insufficient system resources exist to complete the requested service.
             // int that case GetLastError() = 1450
             // try:
-             std::cout << GetLastError();
+            std::cout << "error: " << GetLastError();
             throw std::bad_alloc();
 
         }
@@ -251,7 +253,7 @@ namespace mk {
         }
 
         // we need to store a handle to maped file to use when accesing data in it
-        temp.mapped_handle_ = (LPHANDLE)mapped_handle;
+        temp.mapped_handle_ = (LPHANDLE) mapped_handle;
         // we need to store the ptr to the maped memory so we can free it later
         temp.cur_ptr_ = (T *) ptr;
         // we need how far we are inside the file
@@ -301,8 +303,8 @@ namespace mk {
                 DUPLICATE_SAME_ACCESS   // DWORD    dwOptions
         );
 
-        if(!x){
-            std::cout<<"you fucked up handle"<< GetLastError() << std::endl;
+        if (!x) {
+            std::cout << "you fucked up handle" << GetLastError() << std::endl;
         }
 
 
@@ -327,15 +329,7 @@ namespace mk {
     T &huge_ptr<T>::operator[](size_t position) {
 
         const size_t granularity = get_granularity();
-        size_t calculated_position = (position + offset_) * sizeof(T);
-
-        if (calculated_position < position + offset_) {
-            // size_t overflow
-            throw std::bad_alloc();
-
-        }
-
-
+        size_t calculated_position = size_t_overflow_protection_multiplication((position + offset_), sizeof(T));
 
         const size_t allocation_block = calculated_position / granularity;
 
@@ -352,8 +346,8 @@ namespace mk {
 
 
         /* For the basic solution we are always allocating enough memory from begining of the closest graaniularity
-         * to the elelment we are instrested in plus one size of element
-         * its not going to be verry performant but its the simplest soultion
+         * to the element we are instrested in plus one size of element
+         * its not going to be very performant but its the simplest solution
          * ideas to make it faster:
          * - if we are looking at the same adress in the file one after another we dont need to create new view
          * - we could create a mapping with some space around an address we are trying to access since verry often
@@ -370,7 +364,7 @@ namespace mk {
         );
 
         // MapViewOfFile can return nullptr np. gdy nie ma wystarczajacej ilosci zasobow zaby zaaolokowac pamiec
-        // wiec wzorem ::new() w takim wypdaku wyrzucamy exception
+
         if (!ptr) {
             std::cout << GetLastError() << std::endl;
             throw std::bad_alloc();
@@ -380,7 +374,7 @@ namespace mk {
         cur_ptr_ = (T *) ptr;
 
         // we can divide here becouse in Allocatr::allocate() we multiplied by the sizeof(T) to get the number of bytes
-        return this->cur_ptr_[position % (granularity / sizeof(T))+ offset_];
+        return this->cur_ptr_[position % (granularity / sizeof(T)) + offset_];
     }
 
     template<class T>
@@ -427,11 +421,12 @@ namespace mk {
 
     template<class T>
     huge_ptr<T> huge_ptr<T>::operator++() {
-        return huge_ptr<T>(*this, ++offset_);
+        ++offset_;
+        return *this;//huge_ptr<T>(*this, ++offset_);
     }
 
     template<class T>
-    const huge_ptr<T> huge_ptr<T>::operator++(int) {
+    huge_ptr<T> huge_ptr<T>::operator++(int) {
         huge_ptr<T> temp = *this;
         operator++();
         return temp;
@@ -439,11 +434,12 @@ namespace mk {
 
     template<class T>
     huge_ptr<T> huge_ptr<T>::operator--() {
-        return huge_ptr<T>(*this, --offset_ );
+        --offset_;
+        return *this;//huge_ptr<T>(*this, --offset_ );
     }
 
     template<class T>
-    const huge_ptr<T> huge_ptr<T>::operator--(int) {
+    huge_ptr<T> huge_ptr<T>::operator--(int) {
         huge_ptr<T> temp = *this;
         operator--();
         return temp;

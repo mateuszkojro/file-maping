@@ -34,7 +34,7 @@ public:
     int x;
 
     test_class() {
-        x = rand()%200;
+        x = rand() % 200;
     }
 
     int get() { return x; };
@@ -53,144 +53,162 @@ public:
 
 int main() {
 
+    { /// operators ++ --
+        auto my_ptr = my::Allocator<double>::allocate(5);
+        my_ptr[0] = 0; // entering some random values
+        my_ptr[1] = 1;
+        my_ptr[2] = 2;
+        my_ptr[3] = 3;
+        my_ptr[4] = 4;
 
-  //  show_system_info();
+        // testing operator++()
+        assert (*my_ptr == 0);
+        my_ptr++;
+        assert (*my_ptr == 1);
+
+        assert (*(my_ptr++) == 1);
+
+        assert (*my_ptr == 2);
+        printf("operator++()    [ ok ]\n");
+        // testing operator--()
+
+        my_ptr--;
+        assert (*my_ptr == 1);
+
+        assert (*(my_ptr--) == 1);
+
+        assert (*my_ptr == 0);
+        printf("operator--()    [ ok ]\n");
+
+        // testing operator++(int)
+
+        assert (*my_ptr == 0);
+        ++my_ptr;
+        assert (*my_ptr == 1);
+
+        assert (*(++my_ptr) == 2);
+        printf("operator++(int)    [ ok ]\n");
+
+        // testing operator--(int)
+
+        --my_ptr;
+        assert (*my_ptr == 1);
+
+        assert (*(--my_ptr) == 0);
+        printf("operator--(int)    [ ok ]\n");
+    }
+
+
+
+    //  show_system_info();
+
+
     {
-        using T = int;
 
-        auto my_ptr = mk::Allocator<T>::allocate(5 * sizeof(T));
-        my_ptr[0] = -2; //
-        my_ptr[1] = -1;
-        my_ptr[2] = 0; // 0
-        my_ptr[3] = 4; // 1
-        my_ptr[4] = 2; // 2
+        my::huge_ptr<char> my_ptr = my::Allocator<char>::allocate(2);
+        my::huge_ptr<char> my_ptr2 = my::Allocator<char>::allocate(2);
 
+        my_ptr[0] = 'o';
+        my_ptr[1] = 'k';
 
+        my_ptr2 = my_ptr;
+        assert(my_ptr == my_ptr2);
 
-        std::cout << "*ptr  =  " << my_ptr[0] << std::endl;
-        std::cout << "ptr++\n";
-                    ++my_ptr;
-                    my_ptr++;
+        my_ptr2++;
+        assert(my_ptr != my_ptr2);
+        printf("difference between two pointers  [ ok ]\n");
+    }
 
-
-        std::cout << "*(my_ptr + 1 )  =  " << *my_ptr << std::endl;
-        std::cout << "++ptr\t";
-
-
-
-
-
-        mk::huge_ptr<double> new_ptr = mk::Allocator<double>::allocate(2);
-        my_ptr[0] = 48;
-        my_ptr[1] = 49;
-
-        std::cout << "ptr\t" << my_ptr[0] << std::endl;
-        std::cout << "ptr\t" << my_ptr[1] << std::endl;
-
-        std::cout << "difference  between two pointers : ";
-
-        std::cout << my_ptr - my_ptr << std::endl;
-
-
-        mk::huge_ptr<test_class> mew_ptr = mk::Allocator<test_class>::allocate(3);
+    {
+        my::huge_ptr<test_class> my_ptr = my::Allocator<test_class>::allocate(3);
 
 
         test_class x;
+        *my_ptr = x;
 
-        mew_ptr[0] = x;
+        assert(my_ptr->hash() == (*my_ptr).hash());
 
-        std::cout << "operator -> : " << mew_ptr->hash() << std::endl;
-
-
-        {
-
-            // allocator is able to allocate and have access to
-            mk::huge_ptr<char> huge_allocation = mk::Allocator<char>::allocate(20 KB);
-
-            for (int i = 0; i < 20 KB; i++) {
-
-                huge_allocation[i] = i % 256;
-
-
-            }
-
-            for (int i = 10 KB; i < 10 KB + 10; i++) {
-                std::cout << "i = " << i << " value = " << (int) huge_allocation[i] << "\n";
-
-
-            }
-
-            std::cout << huge_allocation[1024 * 4];
-
-        }
-    }
-    size_t limit = (_UI32_MAX / 4) - 16; // ok
-
-    std::cout << "allocating 4GB of memory , "<<limit<<" bytes" << std::endl;
-
-    mk::huge_ptr<int> even_more_huge_allocation = mk::Allocator<int>::allocate(limit);
-
-    for (int i = 0; i < 10; i++) {
-
-        even_more_huge_allocation[i*(limit/10)] = (int) i;
+        printf("operator ->         [ok] \n");
     }
 
-    for (int i = 0; i < 10; i++) {
-        std::cout << "i = " << i * (limit / 10) << " value = " << even_more_huge_allocation[i * (limit / 10)] << "\n";
-    }
-
-    std::cout   << "allocating 4GB of memory, for the second time, test_class weight: "
-                << sizeof(test_class) << " bytes"
-                << std::endl;
-
-    mk::huge_ptr<test_class> the_same_more_huge_allocation = mk::Allocator<test_class>::allocate(limit);
-
-    for (int i = 0; i < 10; i++) {
-        the_same_more_huge_allocation[i * (limit / 10)] = test_class();
-        //the_same_more_huge_allocation[i] = test_class();
-    }
-    for (int i = 0; i < 5; i++) {
-        std::cout << the_same_more_huge_allocation[i * (limit / 10)].get() << "\n";
-    }
-    the_same_more_huge_allocation.get_offset() = 5;
-    for (int i = 0; i < 5; i++) {
-        std::cout << the_same_more_huge_allocation->get() << "\n";
-        the_same_more_huge_allocation++;
-    }
-
-
-
-
-
-    mk::huge_ptr<int> copy_test;
     {
 
-        mk::huge_ptr<int> copy_test2 = mk::Allocator<int>::allocate(44);
-        for (int i = 0; i < 44; i++) copy_test2[i] = i;
+        // allocator is able to allocate huge amounts of data
+        printf("allocating 200 MB\n");
+        my::huge_ptr<char> huge_allocation = my::Allocator<char>::allocate(200 MB);
 
-        copy_test = copy_test2;
+        for (size_t n = 199 MB; n < 200 MB; ++n) { // assigning value n to nth position
 
-        // deleting copy_test2
-    }
-    for (int i = 0; i < 11; i++) {
+            huge_allocation[n] = n;
+        }
 
-        std::cout << "copy_test["<<i<<"] = " << *copy_test << std::endl;
-        copy_test++;
-    }
-    copy_test.get_offset() = 0;
-
-    for (int i = 11; i < 22; i++) {
-
-        std::cout <<  "copy_test["<<i<<"] = " << copy_test[i] << std::endl;
-
+        for (size_t n = 199 MB; n < 199 MB + 5; ++n) {
+            std::cout << "value under n'th position  = " << " value = " << (int) huge_allocation[n] << "\n";
+        }
     }
 
+    {
+        size_t limit = 900 MB;
+
+        std::cout << "allocating " << limit << " bytes" << std::endl;
+
+        my::huge_ptr<BYTE> huge_allocation = my::Allocator<BYTE>::allocate(limit);
+
+
+        for (int i = 0; i < 5; i++) {
+
+            huge_allocation[i * (limit / 5)] = i;
+        }
+
+        for (int i = 0; i < 5; i++) {
+            std::cout << "value under i = " << i * (limit / 5)
+                      << " value = " << (int) huge_allocation[i * (limit / 10)]
+                      << "\n";
+        }
 
 
 
+        std::cout << "allocating another " << limit * sizeof(test_class)<< " bytes" << std::endl;
+
+        my::huge_ptr<test_class> another_huge_allocation = my::Allocator<test_class>::allocate(limit);
+
+        for (int i = 0; i < 5; i++) {
+            another_huge_allocation[i * (limit / 5)] = test_class();
+
+        }
+        for (int i = 0; i < 5; i++) {
+            std::cout << another_huge_allocation[i * (limit / 5)].get() << "\n";
+        }
+
+    }
+
+    {
+        printf("operator =  test\n");
+        my::huge_ptr<int> copy_test;
+        {
+
+            my::huge_ptr<int> copy_test2 = my::Allocator<int>::allocate(10);
+            for (int i = 0; i < 10; i++) copy_test2[i] = i;
+
+            copy_test = copy_test2;
+
+        }
+        for (int i = 0; i < 5; i++) {
+
+            std::cout << "copy_test[" << i << "] = " << *copy_test << std::endl;
+            copy_test++;
+        } // shifting offset
+          // next
 
 
-    //FILE_FLAG_RANDOM_ACCESS
+        for (int i = 0; i < 5; i++) {
+
+            std::cout << "copy_test[" << i << "] = " << copy_test[i] << std::endl;
+
+        }
+printf("oprator =       [ ok ]\n");
+    }
+
 
     system("pause");
 

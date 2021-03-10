@@ -2,7 +2,7 @@
 
 #include "huge_ptr.h"
 
-namespace mk {
+namespace my {
 	template <class Tp>
 	class Allocator {
 	public:
