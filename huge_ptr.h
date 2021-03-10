@@ -11,7 +11,7 @@
 #include <exception>
 
 // --- zaimplementowac jako allocator --
-// https://en.cppreference.com/w/cpp/memory/allocator
+// https://en.cppreference.com/w/cpp/memory/alloca  tor
 
 typedef long long int s_size_t;
 
@@ -42,6 +42,11 @@ namespace mk {
 
         // call a function on a ptr
         T *operator->();
+
+        size_t& get_offset(){
+            return offset_;
+
+        }
 
         ~huge_ptr() {
 
@@ -81,11 +86,17 @@ namespace mk {
         bool operator==(const huge_ptr<T> ptr) const {
 
             return
-                    // do they point to the sane file
+                // do they point to the sane file
                     mapped_handle_ == ptr.mapped_handle_
                     &&
                     // are they in the same place in the file
                     offset_ == ptr.offset_;
+        }
+
+        bool operator==(const T *ptr) const {
+
+            return cur_ptr_ == ptr;
+
         }
 
         bool operator!=(const huge_ptr<T> ptr) const {
@@ -178,6 +189,11 @@ namespace mk {
     huge_ptr<T> huge_ptr<T>::allocate_huge(size_t alloc_size) {
         huge_ptr<T> temp;
 
+        if ((alloc_size * sizeof(T))/sizeof(T) != alloc_size) {
+            throw std::bad_alloc();
+        }
+        alloc_size *= sizeof(T);
+
         // create memory mapped file
         HANDLE file_handle =
                 CreateFileA(
@@ -197,7 +213,7 @@ namespace mk {
         }
 
         HANDLE mapped_handle = CreateFileMappingA(
-                file_handle                      // file handle from @CreateFileA
+                file_handle,               // file handle from @CreateFileA
                 nullptr,                         //LPSECURITY_ATTRIBUTES lpFileMappingAttributes,
                 PAGE_READWRITE,                  //DWORD       flProtect,
                 0,                               //DWORD       dwMaximumSizeHigh,
@@ -215,7 +231,7 @@ namespace mk {
             // this may be thrown due to Insufficient system resources exist to complete the requested service.
             // int that case GetLastError() = 1450
             // try:
-            // std::cout << GetLastError();
+             std::cout << GetLastError();
             throw std::bad_alloc();
 
         }
@@ -235,7 +251,7 @@ namespace mk {
         }
 
         // we need to store a handle to maped file to use when accesing data in it
-        temp.mapped_handle_ = mapped_handle;
+        temp.mapped_handle_ = (LPHANDLE)mapped_handle;
         // we need to store the ptr to the maped memory so we can free it later
         temp.cur_ptr_ = (T *) ptr;
         // we need how far we are inside the file
@@ -272,7 +288,24 @@ namespace mk {
         cur_ptr_ = other.cur_ptr_;
         offset_ = other.offset_;
 
-        mapped_handle_ = other.mapped_handle_;
+        //mapped_handle_;
+        //LPHANDLE handle = other.mapped_handle_;
+
+        bool x = DuplicateHandle(
+                GetCurrentProcess(),                   //  hSourceProcessHandle,
+                other.mapped_handle_,   //HANDLE   hSourceHandle,
+                GetCurrentProcess(),     //HANDLE   hTargetProcessHandle,
+                &mapped_handle_,         // LPHANDLE lpTargetHandle,
+                DUPLICATE_SAME_ACCESS,  // DWORD    dwDesiredAccess,
+                false,                   // BOOL     bInheritHandle,
+                DUPLICATE_SAME_ACCESS   // DWORD    dwOptions
+        );
+
+        if(!x){
+            std::cout<<"you fucked up handle"<< GetLastError() << std::endl;
+        }
+
+
         return *this;
 
     }
@@ -294,7 +327,15 @@ namespace mk {
     T &huge_ptr<T>::operator[](size_t position) {
 
         const size_t granularity = get_granularity();
-        size_t calculated_position = position + offset_;
+        size_t calculated_position = (position + offset_) * sizeof(T);
+
+        if (calculated_position < position + offset_) {
+            // size_t overflow
+            throw std::bad_alloc();
+
+        }
+
+
 
         const size_t allocation_block = calculated_position / granularity;
 
@@ -306,7 +347,7 @@ namespace mk {
             throw std::bad_alloc();
         }
 
-        // we need to free previouslu mapped memory before allocating new
+        // we need to free previously mapped memory before allocating new
         UnmapViewOfFile(this->cur_ptr_);
 
 
@@ -331,6 +372,7 @@ namespace mk {
         // MapViewOfFile can return nullptr np. gdy nie ma wystarczajacej ilosci zasobow zaby zaaolokowac pamiec
         // wiec wzorem ::new() w takim wypdaku wyrzucamy exception
         if (!ptr) {
+            std::cout << GetLastError() << std::endl;
             throw std::bad_alloc();
         }
 
@@ -338,7 +380,7 @@ namespace mk {
         cur_ptr_ = (T *) ptr;
 
         // we can divide here becouse in Allocatr::allocate() we multiplied by the sizeof(T) to get the number of bytes
-        return this->cur_ptr_[calculated_position / sizeof(T)];
+        return this->cur_ptr_[position % (granularity / sizeof(T))+ offset_];
     }
 
     template<class T>
@@ -385,7 +427,7 @@ namespace mk {
 
     template<class T>
     huge_ptr<T> huge_ptr<T>::operator++() {
-        return huge_ptr<T>(*this, offset_ + 1);
+        return huge_ptr<T>(*this, ++offset_);
     }
 
     template<class T>
@@ -397,7 +439,7 @@ namespace mk {
 
     template<class T>
     huge_ptr<T> huge_ptr<T>::operator--() {
-        return huge_ptr<T>(*this, offset_ - 1);
+        return huge_ptr<T>(*this, --offset_ );
     }
 
     template<class T>

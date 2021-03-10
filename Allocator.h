@@ -8,7 +8,7 @@ namespace mk {
 	public:
 		static huge_ptr<Tp> allocate(size_t n)
 		{
-			n *= sizeof(Tp);
+
 			return huge_ptr<Tp>::allocate_huge(n);
 		}
 
