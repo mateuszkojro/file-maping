@@ -1,4 +1,10 @@
+// klasa allocator
+// ralizuje funkcje allokatora
+// autor Piotr Drabik
+
 #pragma once
+#ifndef ALLOCATOR
+#define ALLOCATOR
 
 #include "huge_ptr.h"
 
@@ -27,11 +33,8 @@ namespace my {
         Allocator& operator=(const Allocator&) = default;
         ~Allocator() = default;
 	};
-	template <class T, class U>
-	bool operator==(const Allocator<T>&, const Allocator<U>&) { return true; }
-	template <class T, class U>
-	bool operator!=(const Allocator<T>&, const Allocator<U>&) { return false; }
 
 
 }
 
+#endif // ALLOCATOR

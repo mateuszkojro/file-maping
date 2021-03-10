@@ -1,10 +1,15 @@
-//#define _X86_
-//#define _AMD64_
+
+// !!!! depending on architecture diffrent #define should be implemented
+// _X86_  for x32
+// _AMD64_ for x64
+
+
+#define _X86_ // x 32
+//#define _AMD64_//  x64
+
+
 
 #include <iostream>
-#include <windows.h>
-#include <vector>
-
 #include "huge_ptr.h"
 #include "Allocator.h"
 
@@ -162,7 +167,7 @@ int main() {
 
         for (int i = 0; i < 5; i++) {
             std::cout << "value under i = " << i * (limit / 5)
-                      << " value = " << (int) huge_allocation[i * (limit / 10)]
+                      << " value = " << (int) huge_allocation[i * (limit / 5)]
                       << "\n";
         }
 

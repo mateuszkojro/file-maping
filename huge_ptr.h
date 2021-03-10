@@ -1,3 +1,10 @@
+// klasa implementuje  huge_ptr
+// wskaźnik na pole danej zapisanej w pliku na dysku
+//
+// każda alokacja niezaleznie od rozmiaru alokacji  twoży osobny plik
+//
+
+
 #pragma once
 #ifndef HUGE_PTR
 #define HUGE_PTR
@@ -34,6 +41,7 @@ namespace my {
     template<class T>
     class huge_ptr {
     public:
+
 
         huge_ptr();
 
@@ -82,7 +90,7 @@ namespace my {
         // free the memory - called by Allocator::dealocate()
         void free() {
             UnmapViewOfFile(cur_ptr_);
-            UnmapViewOfFile(this->cur_ptr_);
+
             std::remove(generate_file_name()); // usuwam plik
 
         }
@@ -232,8 +240,8 @@ namespace my {
 
             // this may be thrown due to Insufficient system resources exist to complete the requested service.
             // int that case GetLastError() = 1450
-            // try:
-            std::cout << "error: " << GetLastError();
+            // try:       std::cout << "error: " << GetLastError();
+
             throw std::bad_alloc();
 
         }
@@ -247,14 +255,15 @@ namespace my {
                 1                                    //SIZE_T dwNumberOfBytesToMap
         );
 
-        // if memory couldnt be maped - throw
+        // if memory couldn't be mapped - throw
         if (!ptr) {
             throw std::bad_alloc();
         }
 
-        // we need to store a handle to maped file to use when accesing data in it
-        temp.mapped_handle_ = (LPHANDLE) mapped_handle;
-        // we need to store the ptr to the maped memory so we can free it later
+
+        // we need to store a handle to mapped file to use when accessing data in it
+        temp.mapped_handle_ = mapped_handle;
+        // we need to store the ptr to the mapped memory so we can free it later
         temp.cur_ptr_ = (T *) ptr;
         // we need how far we are inside the file
         temp.offset_ = 0;
@@ -293,6 +302,7 @@ namespace my {
         //mapped_handle_;
         //LPHANDLE handle = other.mapped_handle_;
 
+
         bool x = DuplicateHandle(
                 GetCurrentProcess(),                   //  hSourceProcessHandle,
                 other.mapped_handle_,   //HANDLE   hSourceHandle,
@@ -304,7 +314,7 @@ namespace my {
         );
 
         if (!x) {
-            std::cout << "you fucked up handle" << GetLastError() << std::endl;
+         throw std::bad_alloc();
         }
 
 
@@ -345,12 +355,12 @@ namespace my {
         UnmapViewOfFile(this->cur_ptr_);
 
 
-        /* For the basic solution we are always allocating enough memory from begining of the closest graaniularity
-         * to the element we are instrested in plus one size of element
+        /* For the basic solution we are always allocating enough memory from beginnig of the closest graniularity
+         * to the element we are interested in plus one size of element
          * its not going to be very performant but its the simplest solution
          * ideas to make it faster:
-         * - if we are looking at the same adress in the file one after another we dont need to create new view
-         * - we could create a mapping with some space around an address we are trying to access since verry often
+         * - if we are looking at the same address in the file one after another we dont need to create new view
+         * - we could create a mapping with some space around an address we are trying to access since very often
          *      these would be used either way
          *
          */
